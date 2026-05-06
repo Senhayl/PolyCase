@@ -207,16 +207,62 @@ bot.on("voice", async (ctx) => {
     await handleUserText(ctx, userId, text);
   } catch (error: any) {
     const msg = String(error?.message || error);
-    if (msg.includes("OPENAI_API_KEY")) {
+    console.error("Error handling voice message:", msg, error);
+
+    // GROQ_API_KEY missing
+    if (!process.env.GROQ_API_KEY || msg.includes("GROQ_API_KEY")) {
       await ctx.reply(
-        "Voice transcription isn't configured. Set OPENAI_API_KEY in your .env to enable voice messages.",
-        { parse_mode: "Markdown" }
+        "⚠️ Voice transcription isn't configured\\. Set `GROQ_API_KEY` in your `.env`\\. Get a free key at [console\\.groq\\.com](https://console.groq.com)\\.",
+        { parse_mode: "MarkdownV2" }
       );
       return;
     }
 
-    console.error("Error handling voice message:", error);
-    await ctx.reply("Sorry, I couldn't process that voice message.", { parse_mode: "Markdown" });
+    // Invalid or expired API key
+    if (
+      error?.status === 401 ||
+      msg.includes("401") ||
+      msg.includes("Incorrect API key") ||
+      msg.includes("invalid_api_key") ||
+      msg.includes("authentication")
+    ) {
+      await ctx.reply(
+        "⚠️ Your Groq API key is invalid or expired\\. Check `GROQ_API_KEY` in your `.env`\\.",
+        { parse_mode: "MarkdownV2" }
+      );
+      return;
+    }
+
+    // Rate limit
+    if (
+      (error?.status === 429 || msg.includes("429")) &&
+      (msg.includes("rate_limit") || msg.includes("rate limit") || msg.includes("Too Many Requests"))
+    ) {
+      await ctx.reply(
+        "⚠️ Groq rate limit hit\\. Wait a few seconds and try again\\.",
+        { parse_mode: "MarkdownV2" }
+      );
+      return;
+    }
+
+    // Quota exhausted
+    if (
+      error?.status === 429 ||
+      msg.includes("429") ||
+      msg.includes("quota") ||
+      msg.includes("billing") ||
+      msg.includes("insufficient_quota")
+    ) {
+      await ctx.reply(
+        "⚠️ Groq quota exceeded\\. Check your usage at [console\\.groq\\.com](https://console.groq.com)\\.",
+        { parse_mode: "MarkdownV2" }
+      );
+      return;
+    }
+
+    await ctx.reply("Sorry, I couldn't process that voice message. Please try again!", {
+      parse_mode: "Markdown",
+    });
   }
 });
 

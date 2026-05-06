@@ -1,20 +1,20 @@
-import OpenAI from "openai";
+import Groq from "groq-sdk";
 import { toFile } from "openai/uploads";
 
 export async function transcribeVoiceOggOpus(audioBuffer: Buffer): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = process.env.GROQ_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set");
+    throw new Error("GROQ_API_KEY is not set");
   }
 
-  const client = new OpenAI({ apiKey });
+  const client = new Groq({ apiKey });
 
   const file = await toFile(audioBuffer, "voice.ogg", {
     type: "audio/ogg",
   });
 
   const result = await client.audio.transcriptions.create({
-    model: "whisper-1",
+    model: "whisper-large-v3-turbo",
     file,
   });
 
