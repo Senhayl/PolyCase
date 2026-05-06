@@ -199,23 +199,13 @@ bot.catch((err, ctx) => {
 });
 
 /**
- * Launch bot
+ * Start the bot
  */
 async function startBot() {
   try {
     console.log("🚀 Starting Polycool bot...");
-
-    if (process.env.NODE_ENV === "production") {
-      // Use webhook for production (Railway)
-      const webhookUrl = `${process.env.RAILWAY_URL}/bot`;
-      await bot.telegram.setWebhook(webhookUrl);
-      console.log(`📡 Webhook set to ${webhookUrl}`);
-    } else {
-      // Use polling for development
-      console.log("📨 Using polling mode...");
-      await bot.launch();
-    }
-
+    console.log("📨 Using polling mode...");
+    await bot.launch();
     console.log("✅ Polycool bot is live!");
   } catch (error) {
     console.error("Failed to start bot:", error);

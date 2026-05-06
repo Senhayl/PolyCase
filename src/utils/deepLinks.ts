@@ -1,9 +1,10 @@
-const BOT_USERNAME = process.env.BOT_USERNAME || "PolycoolApp_bot";
 const REF_CODE = "2BWKT3G5"; // Reference code for tracking
 
 export class DeepLinkGenerator {
   static generateMarketLink(marketId: string): string {
-    return `https://t.me/${BOT_USERNAME}/PolycoolApp?startapp=market_${marketId}_ref_${REF_CODE}`;
+    // Link to Polymarket market (via market ID construction if available)
+    // For now, just return the market ID as reference
+    return `https://polymarket.com`;
   }
 
   static generateTraderLink(walletAddress: string): string {
