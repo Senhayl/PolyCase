@@ -20,18 +20,33 @@ export class ConversationHandler {
 
     // Crypto markets
     if (
-      /crypto|btc|eth|bitcoin|ethereum|coin|web3/i.test(lowerMessage) &&
+      /crypto|btc|eth|sol|xrp|doge|memecoin|bitcoin|ethereum|solana|dogecoin|coin|web3/i.test(lowerMessage) &&
       (/market|bet|trade|explore/i.test(lowerMessage) || /show|tell/i.test(lowerMessage))
     ) {
+      const keyword =
+        /\b(btc|bitcoin)\b/i.test(lowerMessage)
+          ? "btc"
+          : /\b(eth|ethereum)\b/i.test(lowerMessage)
+            ? "eth"
+            : /\b(sol|solana)\b/i.test(lowerMessage)
+              ? "sol"
+              : /\b(xrp)\b/i.test(lowerMessage)
+                ? "xrp"
+                : /\b(doge|dogecoin)\b/i.test(lowerMessage)
+                  ? "doge"
+                  : /memecoin/i.test(lowerMessage)
+                    ? "memecoin"
+                    : "crypto";
+
       return {
         type: IntentType.CATEGORY_MARKETS,
-        keywords: ["crypto"],
+        keywords: [keyword],
       };
     }
 
     // Economy/recession markets
     if (
-      /econom|recession|market|employ|inflation|gdp/i.test(lowerMessage)
+      /econom|recession|employ|inflation|gdp/i.test(lowerMessage)
     ) {
       return {
         type: IntentType.CATEGORY_MARKETS,
@@ -47,20 +62,43 @@ export class ConversationHandler {
       };
     }
 
-    // Market details - reference to first/second/etc
-    if (
-      /tell|more|detail|about|explain|info/i.test(lowerMessage) &&
-      /first|second|third|one|that/i.test(lowerMessage)
-    ) {
-      let reference: "first" | "second" | "third" | number = "first";
+    // Market details
+    // Supports:
+    // - "tell me more about the first one"
+    // - "tell me more about 5" / "details #5"
+    // - "tell me more about ecuador" (matches last shown market title/slug)
+    if (/tell|more|detail|details|about|explain|info|infos|information|plus d'?info|d[ée]tails?/i.test(lowerMessage)) {
+      // Numeric reference (1-based, user-friendly)
+      const numMatch = lowerMessage.match(/(?:^|\s|#)(\d{1,2})(?:\s|$)/);
+      if (numMatch) {
+        const n = Number.parseInt(numMatch[1], 10);
+        if (Number.isFinite(n) && n > 0) {
+          return { type: IntentType.MARKET_DETAILS, reference: n };
+        }
+      }
 
-      if (/second/i.test(lowerMessage)) reference = "second";
-      if (/third/i.test(lowerMessage)) reference = "third";
+      // Ordinal reference
+      if (/first|second|third|one|that|last|latest|dernier|derni[eè]re/i.test(lowerMessage)) {
+        let reference: "first" | "second" | "third" | "last" | number = "first";
+        if (/second/i.test(lowerMessage)) reference = "second";
+        if (/third/i.test(lowerMessage)) reference = "third";
+        if (/last|latest|dernier|derni[eè]re/i.test(lowerMessage)) reference = "last";
+        return { type: IntentType.MARKET_DETAILS, reference };
+      }
 
-      return {
-        type: IntentType.MARKET_DETAILS,
-        reference,
-      };
+      // Free-text query after "about" / "sur" / "a propos de"
+      const queryMatch = lowerMessage.match(/(?:about|sur|concernant|regarding|à propos de|a propos de)\s+(.+)$/i);
+      if (queryMatch) {
+        const q = queryMatch[1]
+          .replace(/^(the|this|that|ce|cet|cette|le|la|les)\s+/i, "")
+          .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (q.length >= 2) {
+          return { type: IntentType.MARKET_DETAILS, marketQuery: q };
+        }
+      }
     }
 
     // Top traders
@@ -130,7 +168,7 @@ export class ConversationHandler {
         index + 1,
         market.question,
         market.yesPrice,
-        market.id
+        market.slug
       );
       response += "\n\n";
     });
@@ -159,7 +197,7 @@ export class ConversationHandler {
         index + 1,
         market.question,
         market.yesPrice,
-        market.id
+        market.slug
       );
       response += "\n\n";
     });
@@ -198,7 +236,7 @@ export class ConversationHandler {
       response += `💰 Bids: ${market.orderBook.bids.length} | Asks: ${market.orderBook.asks?.length || 0}\n\n`;
     }
 
-    response += "\n" + DeepLinkGenerator.generateMarketLink(market.id);
+    response += "\n" + DeepLinkGenerator.generateMarketLink(market.slug);
 
     return response;
   }
@@ -276,10 +314,18 @@ export class ConversationHandler {
   /**
    * Get reference index (first -> 0, second -> 1, etc)
    */
-  static getReferenceIndex(reference: "first" | "second" | "third" | number | undefined): number {
-    if (typeof reference === "number") return reference;
+  static getReferenceIndex(
+    reference: "first" | "second" | "third" | "last" | number | undefined,
+    total?: number
+  ): number {
+    // Users naturally say "1" to mean first item.
+    if (typeof reference === "number") return Math.max(0, reference - 1);
     if (reference === "second") return 1;
     if (reference === "third") return 2;
+    if (reference === "last") {
+      if (typeof total === "number" && Number.isFinite(total) && total > 0) return total - 1;
+      return 0;
+    }
     return 0; // default to first
   }
 }

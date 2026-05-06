@@ -1,6 +1,7 @@
 // Market types
 export interface Market {
   id: string;
+  slug: string;  // market_slug from API for URLs
   question: string;
   yesPrice: number;
   noPrice: number;
@@ -54,5 +55,6 @@ export enum IntentType {
 export interface ParsedIntent {
   type: IntentType;
   keywords?: string[];
-  reference?: "first" | "second" | "third" | number;
+  reference?: "first" | "second" | "third" | "last" | number;
+  marketQuery?: string;
 }

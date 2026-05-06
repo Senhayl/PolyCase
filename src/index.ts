@@ -121,15 +121,23 @@ bot.on("text", async (ctx) => {
       response = ConversationHandler.generateResponse(intent, markets);
     } else if (intent.type === IntentType.MARKET_DETAILS) {
       // Get reference to previously shown market
-      const refIndex = ConversationHandler.getReferenceIndex(
-        intent.reference
-      );
+      const markets = context.lastViewedMarkets;
 
-      if (
-        context.lastViewedMarkets &&
-        context.lastViewedMarkets[refIndex]
-      ) {
-        const market = context.lastViewedMarkets[refIndex];
+      let refIndex = ConversationHandler.getReferenceIndex(intent.reference, markets?.length);
+
+      if (markets && intent.marketQuery) {
+        const q = intent.marketQuery.toLowerCase();
+        const idx = markets.findIndex((m) => {
+          const question = (m.question || "").toLowerCase();
+          const slug = (m.slug || "").toLowerCase();
+          return question.includes(q) || slug.includes(q);
+        });
+
+        if (idx >= 0) refIndex = idx;
+      }
+
+      if (markets && markets[refIndex]) {
+        const market = markets[refIndex];
         context.lastMarketId = market.id;
 
         const marketDetail = await polymarketService.getMarketDetail(

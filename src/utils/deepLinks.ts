@@ -1,10 +1,8 @@
-const REF_CODE = "2BWKT3G5"; // Reference code for tracking
-
 export class DeepLinkGenerator {
-  static generateMarketLink(marketId: string): string {
-    // Link to Polymarket market (via market ID construction if available)
-    // For now, just return the market ID as reference
-    return `https://polymarket.com`;
+  static generateMarketLink(slug: string): string {
+    // Polymarket market pages use the slug
+    if (!slug) return "https://polymarket.com";
+    return `https://polymarket.com/market/${slug}`;
   }
 
   static generateTraderLink(walletAddress: string): string {
@@ -16,11 +14,11 @@ export class DeepLinkGenerator {
     index: number,
     question: string,
     yesProbability: number,
-    marketId: string
+    marketSlug: string
   ): string {
     const yesPercent = (yesProbability * 100).toFixed(0);
     const noPercent = (100 - yesProbability * 100).toFixed(0);
-    const link = this.generateMarketLink(marketId);
+    const link = this.generateMarketLink(marketSlug);
     return `${index}. ${question} (${yesPercent}%)\n[View Market](${link})`;
   }
 
