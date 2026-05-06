@@ -114,8 +114,10 @@ export class PolymarketService {
         return hay.includes(needle);
       };
 
-      const pageSize = 200;
-      const maxPages = 10; // cap to keep latency reasonable
+      const isCryptoNeedle = ["btc", "eth", "sol", "xrp", "doge", "memecoin", "crypto"].includes(needle);
+      // Crypto tickers can be sparse in the default ordering; scan deeper with fewer requests.
+      const pageSize = isCryptoNeedle ? 500 : 200;
+      const maxPages = isCryptoNeedle ? 10 : 10; // 10*500=5000 items for crypto
       const results: Market[] = [];
       const seenIds = new Set<string>();
 
